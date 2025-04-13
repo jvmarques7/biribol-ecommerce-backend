@@ -1,0 +1,82 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id        String            @id @default(uuid()) @db.Uuid
+  nome      String
+  email     String            @unique
+  senha     String
+  perfis    UsuarioPerfil[] // relacionamento com roles
+  dataCriacao DateTime       @default(now()) @map("data_criacao")
+  Pedido    Pedido[]
+
+  @@map("usuario")
+}
+
+model Perfil {
+  id    String     @id @default(uuid()) @db.Uuid
+  nome  TipoPerfil   
+  usuarios UsuarioPerfil[] // usuários com esse perfil
+
+  @@map("perfil")
+}
+
+model UsuarioPerfil {
+  id     String @id   @default(uuid()) @db.Uuid
+  usuario   Usuario   @relation(fields: [usuarioId], references: [id])
+  usuarioId String   @db.Uuid @map("usuario_id")
+  perfil   Perfil     @relation(fields: [perfilId], references: [id])
+  perfilId String    @db.Uuid @map("perfil_id")
+
+  @@unique([usuarioId, perfilId])
+  @@map("usuario_perfil")
+}
+
+model Produto {
+  id         String           @id @default(uuid()) @db.Uuid
+  nome       String
+  descricao  String
+  preco      Float
+  imagemUrl  String           @map("imagem_url")
+  estoque    Int
+  dataCriacao  DateTime       @default(now()) @map("data_criacao")
+  dataAlteracao  DateTime     @updatedAt @map("data_alteracao")
+  produtoPedido ProdutoPedido[]
+
+  @@map("produto")
+}
+
+model Pedido {
+  id        String          @id @default(uuid()) @db.Uuid
+  usuario   Usuario         @relation(fields: [usuarioId], references: [id])
+  usuarioId String         @db.Uuid @map("usuario_id")
+  total     Float
+  dataCriacao  DateTime    @default(now()) @map("data_criacao")
+  produtos     ProdutoPedido[]
+
+  @@map("pedido")
+}
+
+model ProdutoPedido {
+  id         String  @id @default(uuid()) @db.Uuid
+  produto    Produto @relation(fields: [produtoId], references: [id])
+  produtoId  String @db.Uuid @map("produto_id")
+  pedido     Pedido  @relation(fields: [pedidoId], references: [id])
+  pedidoId   String @db.Uuid @map("pedido_id")
+  quantidade Int
+
+  @@map("produto_pedido")
+}
+
+enum TipoPerfil {
+  CLIENTE
+  ADMIN
+  DEV
+}
