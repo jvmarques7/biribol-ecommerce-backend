@@ -15,13 +15,15 @@ model Usuario {
   senha     String
   perfis    UsuarioPerfil[] // relacionamento com roles
   dataCriacao DateTime       @default(now()) @map("data_criacao")
-  Pedido    Pedido[]
+  pessoaFisicaId String? @db.Uuid @map("pessoa_fisica_id") @unique
+  pessoaFisica PessoaFisica? @relation(fields: [pessoaFisicaId], references: [id])
+  pedido    Pedido[]
 
   @@map("usuario")
 }
 
 model Perfil {
-  id    String     @id @default(uuid()) @db.Uuid
+  id    BigInt     @id 
   nome  TipoPerfil   
   usuarios UsuarioPerfil[] // usuários com esse perfil
 
@@ -33,7 +35,7 @@ model UsuarioPerfil {
   usuario   Usuario   @relation(fields: [usuarioId], references: [id])
   usuarioId String   @db.Uuid @map("usuario_id")
   perfil   Perfil     @relation(fields: [perfilId], references: [id])
-  perfilId String    @db.Uuid @map("perfil_id")
+  perfilId BigInt    @map("perfil_id")
 
   @@unique([usuarioId, perfilId])
   @@map("usuario_perfil")
@@ -74,6 +76,79 @@ model ProdutoPedido {
 
   @@map("produto_pedido")
 }
+
+model Estado {
+  id     BigInt   @id
+  nome   String
+  sigla  String   @unique
+  cidades Cidade[]
+
+  @@map("estado")
+}
+
+model Cidade {
+  id        BigInt   @id
+  nome      String
+  estadoId  BigInt   @map("estado_id")
+  estado    Estado   @relation(fields: [estadoId], references: [id])
+
+  @@map("cidade")
+}
+
+model Endereco {
+  id            String   @id @default(uuid()) @db.Uuid
+  pessoaFisicaId     String   @db.Uuid @map("pessoa_fisica_id")
+  pessoaFisica       PessoaFisica?  @relation(fields: [pessoaFisicaId], references: [id])
+
+  estado        String
+  cidade        String
+  rua           String
+  numero        String?
+  complemento   String?
+  bairro        String
+  cep           String
+
+  nomeDestinatario String   @db.VarChar(100) @map("nome_destinatario") /// Nome do destinatário
+  tipoEndereco     String   @db.VarChar(20)  @map("tipo_endereco") /// 'Residencial' ou 'Trabalho'
+  info              String?  @db.VarChar(255)  /// Informações adicionais
+  
+  dataCriacao   DateTime @default(now()) @map("data_criacao")
+  padrao       Boolean  @default(false) /// Indica se é o endereço principal
+
+  @@map("endereco")
+}
+
+model PessoaFisica {
+  id              String   @id @default(uuid()) @db.Uuid
+  nome            String
+  cpf             String   @unique
+  dataNascimento  DateTime @map("data_nascimento")
+  usuario         Usuario?
+  enderecos       Endereco[]
+  contatos        ContatoPessoa[]
+
+  @@map("pessoa_fisica")
+}
+
+model TipoContato {
+  id       BigInt          @id
+  nome     String          @unique
+  contatos ContatoPessoa[]
+
+  @@map("tipo_contato")
+}
+
+model ContatoPessoa {
+  id             String       @id @default(uuid()) @db.Uuid
+  pessoaFisicaId      String       @db.Uuid @map("pessoa_fisica_id")
+  pessoaFisica        PessoaFisica      @relation(fields: [pessoaFisicaId], references: [id])
+  tipoContatoId  BigInt       @map("tipo_contato_id")
+  tipoContato    TipoContato  @relation(fields: [tipoContatoId], references: [id])
+  valor          String
+
+  @@map("contato_pessoa")
+}
+
 
 enum TipoPerfil {
   CLIENTE

@@ -6,6 +6,8 @@ import authRoutes from "./routes/auth"
 import produtosRoutes from "./routes/produtos"
 import pedidosRoutes from "./routes/pedidos"
 import estoqueRoutes from "./routes/estoque"
+import usuarioRoutes from "./routes/usuario"
+import enderecoRoutes from "./routes/endereco"
 
 dotenv.config()
 
@@ -18,6 +20,8 @@ app.use("/auth", authRoutes)
 app.use("/produtos", produtosRoutes)
 app.use("/pedidos", pedidosRoutes)
 app.use("/estoque", estoqueRoutes)
+app.use("/usuario", usuarioRoutes)
+app.use("/enderecos", enderecoRoutes)
 
 app.get("/", (_req, res) => {
   res.send("Servidor Biribol Brasil 🏐 rodando!")
