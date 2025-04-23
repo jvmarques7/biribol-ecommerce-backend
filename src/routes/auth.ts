@@ -32,7 +32,7 @@ router.post("/cadastro", async (req, res) => {
 
   const [usuarioExistente, cpfExistente] = await Promise.all([
     prisma.usuario.findUnique({ where: { email } }),
-    prisma.pessoaFisica.findUnique({ where: { cpf } }),
+    prisma.pessoa.findUnique({ where: { cpf } }),
   ]);
 
   if (usuarioExistente) {
@@ -70,7 +70,7 @@ router.post("/cadastro", async (req, res) => {
           perfil: { connect: { id: perfil.id } },
         })),
       },
-      pessoaFisica: {
+      pessoa: {
         create: {
           nome,
           cpf,
@@ -82,7 +82,7 @@ router.post("/cadastro", async (req, res) => {
       perfis: {
         include: { perfil: true },
       },
-      pessoaFisica: true
+      pessoa: true
     },
   });
 
@@ -93,10 +93,10 @@ router.post("/cadastro", async (req, res) => {
     perfis: novoUsuario.perfis.map((p) => p.perfil.nome),
     dataCriacao: novoUsuario.dataCriacao,
     pessoaFisica: {
-      id: novoUsuario.pessoaFisica.id,
-      nome: novoUsuario.pessoaFisica.nome,
-      cpf: novoUsuario.pessoaFisica.cpf,
-      dataNascimento: novoUsuario.pessoaFisica.dataNascimento
+      id: novoUsuario.pessoa.id,
+      nome: novoUsuario.pessoa.nome,
+      cpf: novoUsuario.pessoa.cpf,
+      dataNascimento: novoUsuario.pessoa.dataNascimento
     }
   });
   return
@@ -151,34 +151,5 @@ router.post("/login", async (req, res) => {
   })
   return
 })
-
-router.get("/me", verifyToken, async (req, res) => {
-  const usuarioId = req.user?.id;
-
-  const usuario = await prisma.usuario.findUnique({
-    where: { id: usuarioId },
-    include: {
-      perfis: {
-        include: {
-          perfil: true,
-        },
-      },
-      pessoaFisica: true
-    },
-  });
-
-  if (!usuario) {
-    res.status(404).json({ erro: "Usuário não encontrado." });
-    return
-  }
-
-  res.json({
-    id: usuario.id,
-    nome: usuario.nome,
-    email: usuario.email,
-    perfis: usuario.perfis.map((p) => p.perfil.nome),
-    pessoaFisica: usuario.pessoaFisica
-  });
-});
   
 export default router

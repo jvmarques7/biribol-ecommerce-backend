@@ -20,10 +20,10 @@ const enderecoSchema = z.object({
   });
 
 router.get("/", verifyToken, async (req, res) => {
-    const pessoaFisicaId = req.user?.pessoaFisica?.id;
+    const pessoaId = req.user?.pessoa?.id;
   
     const enderecos = await prisma.endereco.findMany({
-      where: { pessoaFisicaId },
+      where: { pessoaId },
       orderBy: { dataCriacao: "desc" },
     });
   
@@ -50,7 +50,7 @@ router.post("/", verifyToken, async (req, res) => {
         numero: entidadeSalvar.numero,
         cidade: entidadeSalvar.cidade,
         estado: entidadeSalvar.estado,
-        pessoaFisicaId: pessoaFisicaId,
+        pessoaId: pessoaFisicaId,
         nomeDestinatario: entidadeSalvar.nomeDestinatario,
         info: entidadeSalvar.info,
         tipoEndereco: entidadeSalvar.tipoEndereco
@@ -77,7 +77,7 @@ router.put("/:id", verifyToken, async (req, res) => {
       where: { id: enderecoId },
     });
   
-    if (!endereco || endereco.pessoaFisicaId !== pessoaFisicaId) {
+    if (!endereco || endereco.pessoaId !== pessoaFisicaId) {
       res.status(403).json({ erro: "Endereço não encontrado ou acesso negado." });
       return
     }
@@ -93,7 +93,7 @@ router.put("/:id", verifyToken, async (req, res) => {
         numero: entidadeSalvar.numero,
         cidade: entidadeSalvar.cidade,
         estado: entidadeSalvar.estado,
-        pessoaFisicaId: pessoaFisicaId,
+        pessoaId: pessoaFisicaId,
         nomeDestinatario: entidadeSalvar.nomeDestinatario,
         info: entidadeSalvar.info,
         tipoEndereco: entidadeSalvar.tipoEndereco
@@ -126,11 +126,11 @@ router.patch("/:id/padrao", verifyToken, async (req, res) => {
       where: { id: enderecoId },
     });
 
-    const pessoaFisicaId = endereco.pessoaFisicaId
+    const pessoaId = endereco.pessoaId
   
     // Desmarcar todos os outros endereços do usuário
     await prisma.endereco.updateMany({
-      where: { pessoaFisicaId },
+      where: { pessoaId },
       data: { padrao: false },
     });
   

@@ -4,8 +4,8 @@ export interface JwtPayload {
     id: string
     email: string
     perfis: string[]
-    pessoaFisica: prisma.pessoaFisica
-    pessoaFisicaId: string
+    pessoa: prisma.Pessoa
+    pessoaId: string
     // Adicione os campos que você está incluindo no token
   }
   

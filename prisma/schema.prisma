@@ -15,8 +15,8 @@ model Usuario {
   senha     String
   perfis    UsuarioPerfil[] // relacionamento com roles
   dataCriacao DateTime       @default(now()) @map("data_criacao")
-  pessoaFisicaId String? @db.Uuid @map("pessoa_fisica_id") @unique
-  pessoaFisica PessoaFisica? @relation(fields: [pessoaFisicaId], references: [id])
+  pessoaId String? @db.Uuid @map("pessoa_fisica_id") @unique
+  pessoa Pessoa? @relation(fields: [pessoaId], references: [id])
   pedido    Pedido[]
 
   @@map("usuario")
@@ -97,8 +97,8 @@ model Cidade {
 
 model Endereco {
   id            String   @id @default(uuid()) @db.Uuid
-  pessoaFisicaId     String   @db.Uuid @map("pessoa_fisica_id")
-  pessoaFisica       PessoaFisica?  @relation(fields: [pessoaFisicaId], references: [id])
+  pessoaId     String   @db.Uuid @map("pessoa_id")
+  pessoa       Pessoa?  @relation(fields: [pessoaId], references: [id])
 
   estado        String
   cidade        String
@@ -118,16 +118,19 @@ model Endereco {
   @@map("endereco")
 }
 
-model PessoaFisica {
+model Pessoa {
   id              String   @id @default(uuid()) @db.Uuid
   nome            String
-  cpf             String   @unique
-  dataNascimento  DateTime @map("data_nascimento")
+  cpf             String?  @unique
+  dataNascimento  DateTime? @map("data_nascimento")
+  cnpj      String? @unique
+  razaoSocial      String? @map("razao_social")
+  pessoaJuridica     Boolean @default(false) @map("pessoa_juridica")
   usuario         Usuario?
   enderecos       Endereco[]
   contatos        ContatoPessoa[]
 
-  @@map("pessoa_fisica")
+  @@map("pessoa")
 }
 
 model TipoContato {
@@ -140,8 +143,8 @@ model TipoContato {
 
 model ContatoPessoa {
   id             String       @id @default(uuid()) @db.Uuid
-  pessoaFisicaId      String       @db.Uuid @map("pessoa_fisica_id")
-  pessoaFisica        PessoaFisica      @relation(fields: [pessoaFisicaId], references: [id])
+  pessoaId      String       @db.Uuid @map("pessoa_id")
+  pessoa        Pessoa      @relation(fields: [pessoaId], references: [id])
   tipoContatoId  BigInt       @map("tipo_contato_id")
   tipoContato    TipoContato  @relation(fields: [tipoContatoId], references: [id])
   valor          String

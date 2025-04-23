@@ -16,7 +16,7 @@ router.get("/", verifyToken, async (req, res) => {
           perfis: {
             include: { perfil: true },
           },
-          pessoaFisica: {
+          pessoa: {
             include: {
               enderecos: {
                 orderBy: [
@@ -44,12 +44,12 @@ router.get("/", verifyToken, async (req, res) => {
         nome: usuario.nome,
         email: usuario.email,
         perfis: usuario.perfis.map(p => p.perfil.nome),
-        pessoaFisica: {
-          id: usuario.pessoaFisicaId,
-          nome: usuario.pessoaFisica?.nome,
-          cpf: usuario.pessoaFisica?.cpf,
-          dataNascimento: usuario.pessoaFisica?.dataNascimento,
-          enderecos: usuario.pessoaFisica.enderecos.map(end => ({
+        pessoa: {
+          id: usuario.pessoaId,
+          nome: usuario.pessoa?.nome,
+          cpf: usuario.pessoa?.cpf,
+          dataNascimento: usuario.pessoa?.dataNascimento,
+          enderecos: usuario.pessoa.enderecos.map(end => ({
             id: end.id,
             rua: end.rua,
             numero: end.numero,
@@ -63,7 +63,7 @@ router.get("/", verifyToken, async (req, res) => {
             info: end.info,
             padrao: end.padrao
           })),
-          contatos: usuario.pessoaFisica.contatos.map(c => ({
+          contatos: usuario.pessoa.contatos.map(c => ({
             tipo: c.tipoContato.nome,
             valor: c.valor,
           })),
@@ -90,10 +90,10 @@ router.put("/", verifyToken, async (req, res) => {
     where: { id: usuarioId },
     data: { 
         nome,
-        pessoaFisica: nome ? { update: { nome: nome } }
+        pessoa: nome ? { update: { nome: nome } }
         : undefined
      },
-     include: {pessoaFisica: true}
+     include: {pessoa: true}
   });
 
   res.json({ mensagem: "Nome atualizado.", nome: atualizado.nome });
