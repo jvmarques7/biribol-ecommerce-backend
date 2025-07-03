@@ -1,4 +1,5 @@
-// prisma/schema.prisma
+// Arquivo: prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,123 +10,49 @@ datasource db {
 }
 
 model Usuario {
-  id        String            @id @default(uuid()) @db.Uuid
-  nome      String
-  email     String            @unique
-  senha     String
-  perfis    UsuarioPerfil[] // relacionamento com roles
-  dataCriacao DateTime       @default(now()) @map("data_criacao")
-  pessoaId String? @db.Uuid @map("pessoa_fisica_id") @unique
-  pessoa Pessoa? @relation(fields: [pessoaId], references: [id])
-  pedido    Pedido[]
+  id           String           @id @default(uuid()) @db.Uuid /// ID do usuário
+  nome         String /// Nome do usuário
+  email        String  @unique /// E-mail do usuário
+  senha        String /// Senha criptografada
+  dataCriacao  DateTime @default(now()) @map("data_criacao") /// Data de criação do cadastro
+  pessoaId     String   @db.Uuid @map("pessoa_id") @unique /// Pessoa vinculada ao usuário
+  pessoa       Pessoa?   @relation(fields: [pessoaId], references: [id])
+  perfis       UsuarioPerfil[]
+  pedidos      Pedido[]
 
+  @@index([pessoaId])
   @@map("usuario")
 }
 
 model Perfil {
-  id    BigInt     @id 
-  nome  TipoPerfil   
-  usuarios UsuarioPerfil[] // usuários com esse perfil
+  id          BigInt  @id /// ID do perfil
+  descricao   String /// Descrição do perfil (ex: ADMIN, CLIENTE)
+  usuarios    UsuarioPerfil[]
 
   @@map("perfil")
 }
 
 model UsuarioPerfil {
-  id     String @id   @default(uuid()) @db.Uuid
-  usuario   Usuario   @relation(fields: [usuarioId], references: [id])
-  usuarioId String   @db.Uuid @map("usuario_id")
-  perfil   Perfil     @relation(fields: [perfilId], references: [id])
-  perfilId BigInt    @map("perfil_id")
+  id         String   @id @default(uuid()) @db.Uuid /// ID do relacionamento usuário-perfil
+  perfilId   BigInt   @map("perfil_id")
+  usuarioId  String   @db.Uuid @map("usuario_id")
 
-  @@unique([usuarioId, perfilId])
+  usuario    Usuario  @relation(fields: [usuarioId], references: [id])
+  perfil     Perfil   @relation(fields: [perfilId], references: [id])
+
+  @@index([perfilId])
+  @@index([usuarioId])
   @@map("usuario_perfil")
 }
 
-model Produto {
-  id         String           @id @default(uuid()) @db.Uuid
-  nome       String
-  descricao  String
-  preco      Float
-  imagemUrl  String           @map("imagem_url")
-  estoque    Int
-  dataCriacao  DateTime       @default(now()) @map("data_criacao")
-  dataAlteracao  DateTime     @updatedAt @map("data_alteracao")
-  produtoPedido ProdutoPedido[]
-
-  @@map("produto")
-}
-
-model Pedido {
-  id        String          @id @default(uuid()) @db.Uuid
-  usuario   Usuario         @relation(fields: [usuarioId], references: [id])
-  usuarioId String         @db.Uuid @map("usuario_id")
-  total     Float
-  dataCriacao  DateTime    @default(now()) @map("data_criacao")
-  produtos     ProdutoPedido[]
-
-  @@map("pedido")
-}
-
-model ProdutoPedido {
-  id         String  @id @default(uuid()) @db.Uuid
-  produto    Produto @relation(fields: [produtoId], references: [id])
-  produtoId  String @db.Uuid @map("produto_id")
-  pedido     Pedido  @relation(fields: [pedidoId], references: [id])
-  pedidoId   String @db.Uuid @map("pedido_id")
-  quantidade Int
-
-  @@map("produto_pedido")
-}
-
-model Estado {
-  id     BigInt   @id
-  nome   String
-  sigla  String   @unique
-  cidades Cidade[]
-
-  @@map("estado")
-}
-
-model Cidade {
-  id        BigInt   @id
-  nome      String
-  estadoId  BigInt   @map("estado_id")
-  estado    Estado   @relation(fields: [estadoId], references: [id])
-
-  @@map("cidade")
-}
-
-model Endereco {
-  id            String   @id @default(uuid()) @db.Uuid
-  pessoaId     String   @db.Uuid @map("pessoa_id")
-  pessoa       Pessoa?  @relation(fields: [pessoaId], references: [id])
-
-  estado        String
-  cidade        String
-  rua           String
-  numero        String?
-  complemento   String?
-  bairro        String
-  cep           String
-
-  nomeDestinatario String   @db.VarChar(100) @map("nome_destinatario") /// Nome do destinatário
-  tipoEndereco     String   @db.VarChar(20)  @map("tipo_endereco") /// 'Residencial' ou 'Trabalho'
-  info              String?  @db.VarChar(255)  /// Informações adicionais
-  
-  dataCriacao   DateTime @default(now()) @map("data_criacao")
-  padrao       Boolean  @default(false) /// Indica se é o endereço principal
-
-  @@map("endereco")
-}
-
 model Pessoa {
-  id              String   @id @default(uuid()) @db.Uuid
-  nome            String
-  cpf             String?  @unique
-  dataNascimento  DateTime? @map("data_nascimento")
-  cnpj      String? @unique
-  razaoSocial      String? @map("razao_social")
-  pessoaJuridica     Boolean @default(false) @map("pessoa_juridica")
+  id              String   @id @default(uuid()) @db.Uuid /// ID da pessoa
+  nome            String /// Nome da pessoa
+  cpf             String?  @unique /// CPF da pessoa física
+  dataNascimento  DateTime? @map("data_nascimento") /// Data de nascimento
+  cnpj            String?  @unique /// CNPJ da pessoa jurídica
+  razaoSocial     String?  @map("razao_social") /// Razão social
+  pessoaJuridica  Boolean  @default(false) @map("pessoa_juridica") /// Se é pessoa jurídica
   usuario         Usuario?
   enderecos       Endereco[]
   contatos        ContatoPessoa[]
@@ -133,28 +60,147 @@ model Pessoa {
   @@map("pessoa")
 }
 
+model Produto {
+  id                  String    @id @default(uuid()) @db.Uuid /// ID do produto
+  nome                String /// Nome do produto
+  descricao           String /// Descrição do produto
+  preco               Float    @default(0.0) /// Preço do produto
+  marca               String /// Marca
+  estoque             Int /// Quantidade disponível
+  modelo              String? /// Modelo (opcional)
+  cor                 String? /// Cor (opcional)
+  excluido            Boolean  @default(false) /// Produto excluído
+  dataCriacao         DateTime @default(now()) @map("data_criacao")
+  criacaoUsuarioId    String   @db.Uuid @map("criacao_usuario_id")
+  dataAtualizacao     DateTime? @map("data_atualizacao")
+  atualizacaoUsuarioId String? @db.Uuid @map("atualizacao_usuario_id")
+  dataExclusao        DateTime? @map("data_exclusao")
+  exclusaoUsuarioId   String? @db.Uuid @map("exclusao_usuario_id")
+
+  imagens             ImagensProduto[]
+  infos               InfosProduto[]
+  produtoPedido       ProdutoPedido[]
+
+  @@index([criacaoUsuarioId])
+  @@index([atualizacaoUsuarioId])
+  @@index([exclusaoUsuarioId])
+  @@map("produto")
+}
+
+model Pedido {
+  id         String    @id @default(uuid()) @db.Uuid /// ID do pedido
+  total      Float /// Valor total
+  dataCriacao DateTime /// Data da criação do pedido
+  codigo     String   @unique /// Código de rastreio / identificação
+  usuarioId  String   @db.Uuid @map("usuario_id")
+
+  usuario    Usuario  @relation(fields: [usuarioId], references: [id])
+  produtoPedido   ProdutoPedido[]
+
+  @@index([usuarioId])
+  @@map("pedido")
+}
+
+model ProdutoPedido {
+  id          String   @id @default(uuid()) @db.Uuid /// ID do produto no pedido
+  produtoId   String   @db.Uuid @map("produto_id")
+  pedidoId    String   @db.Uuid @map("pedido_id")
+  quantidade  Int /// Quantidade do produto nesse pedido
+
+  produto     Produto  @relation(fields: [produtoId], references: [id])
+  pedido      Pedido   @relation(fields: [pedidoId], references: [id])
+
+  @@index([produtoId])
+  @@index([pedidoId])
+  @@map("produto_pedido")
+}
+
+model Endereco {
+  id               String   @id @default(uuid()) @db.Uuid /// ID do endereço
+  cep              String /// CEP
+  rua              String /// Nome da rua
+  bairro           String /// Bairro
+  numero           String /// Número
+  complemento      String? /// Complemento
+  cidade           String /// Cidade
+  estado           String /// Estado
+  info             String /// Informações adicionais
+  nomeDestinatario String @map("nome_destinatario") /// Nome do destinatário
+  tipoEndereco     String @map("tipo_endereco") /// Tipo: Residencial ou Trabalho
+  dataCriacao      DateTime @default(now()) @map("data_criacao")
+  padrao           Boolean @default(false) /// Endereço principal?
+  excluido         Boolean @default(false) /// Endereço excluído
+  dataExclusao     DateTime?
+  pessoaId         String  @db.Uuid @map("pessoa_id")
+
+  pessoa           Pessoa @relation(fields: [pessoaId], references: [id])
+
+  @@index([pessoaId])
+  @@map("endereco")
+}
+
+model Estado {
+  id         BigInt   @id /// ID da UF
+  sigla      String /// Sigla
+  descricao  String /// Nome completo
+
+  cidades    Cidade[]
+
+  @@map("estado")
+}
+
+model Cidade {
+  id                   BigInt  @id /// ID da cidade
+  descricao            String /// Nome da cidade
+  estadoId  BigInt  @map("estado_id")
+
+  estado               Estado @relation(fields: [estadoId], references: [id])
+
+  @@index([estadoId])
+  @@map("cidade")
+}
+
+model ContatoPessoa {
+  id              String   @id @default(uuid()) @db.Uuid /// ID do contato
+  descricao       String /// Número/email de contato
+  pessoaId        String   @db.Uuid @map("pessoa_id")
+  tipoContatoId   BigInt   @map("tipo_contato_id")
+
+  pessoa          Pessoa   @relation(fields: [pessoaId], references: [id])
+  tipoContato     TipoContato @relation(fields: [tipoContatoId], references: [id])
+
+  @@index([pessoaId])
+  @@index([tipoContatoId])
+  @@map("contato_pessoa")
+}
+
 model TipoContato {
-  id       BigInt          @id
-  nome     String          @unique
-  contatos ContatoPessoa[]
+  id          BigInt  @id /// ID do tipo de contato
+  descricao   String /// Descrição: Celular, Email, etc
+
+  contatos    ContatoPessoa[]
 
   @@map("tipo_contato")
 }
 
-model ContatoPessoa {
-  id             String       @id @default(uuid()) @db.Uuid
-  pessoaId      String       @db.Uuid @map("pessoa_id")
-  pessoa        Pessoa      @relation(fields: [pessoaId], references: [id])
-  tipoContatoId  BigInt       @map("tipo_contato_id")
-  tipoContato    TipoContato  @relation(fields: [tipoContatoId], references: [id])
-  valor          String
+model ImagensProduto {
+  id          String   @id @default(uuid()) @db.Uuid /// ID da imagem do produto
+  descricao   String /// Nome ou path do arquivo
+  produtoId   String   @db.Uuid @map("produto_id")
 
-  @@map("contato_pessoa")
+  produto     Produto  @relation(fields: [produtoId], references: [id])
+
+  @@index([produtoId])
+  @@map("imagens_produto")
 }
 
+model InfosProduto {
+  id          String   @id @default(uuid()) @db.Uuid /// ID da info adicional do produto
+  descricao   String /// Texto descritivo
+  produtoId   String   @db.Uuid @map("produto_id")
 
-enum TipoPerfil {
-  CLIENTE
-  ADMIN
-  DEV
+  produto     Produto  @relation(fields: [produtoId], references: [id])
+
+  @@index([produtoId])
+  @@map("infos_produto")
 }

@@ -15,4 +15,24 @@ export function isValidCPF(cpf: string): boolean {
   
     return dig2 === +cpf[10];
   }
+
+export function isValidCNPJ(cnpj: string) {
+    cnpj = cnpj.replace(/[^\d]+/g, "")
+  
+    if (cnpj.length !== 14 || /^(\d)\1+$/.test(cnpj)) return false
+  
+    const calc = (x: number[]) =>
+      x
+        .map((n, i) => +cnpj[i] * n)
+        .reduce((a, b) => a + b, 0)
+  
+    const dig1 = calc([5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]) % 11
+    const dig2 = calc([6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]) % 11
+  
+    return (
+      +cnpj[12] === (dig1 < 2 ? 0 : 11 - dig1) &&
+      +cnpj[13] === (dig2 < 2 ? 0 : 11 - dig2)
+    )
+  }
+  
   

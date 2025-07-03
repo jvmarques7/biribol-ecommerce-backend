@@ -22,6 +22,7 @@ app.use("/pedidos", pedidosRoutes)
 app.use("/estoque", estoqueRoutes)
 app.use("/usuario", usuarioRoutes)
 app.use("/enderecos", enderecoRoutes)
+app.use("/admin/produtos", produtosRoutes)
 
 app.get("/", (_req, res) => {
   res.send("Servidor Biribol Brasil 🏐 rodando!")

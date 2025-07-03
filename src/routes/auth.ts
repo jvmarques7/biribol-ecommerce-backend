@@ -1,6 +1,6 @@
 import { prisma } from "../lib/prisma"
 import { verifyToken } from "../middleware/verifyToken";
-import { isValidCPF } from "../utils/validaCPF";
+import { isValidCNPJ, isValidCPF } from "../utils/validador";
 import bcrypt from "bcryptjs"
 import jwt from "jsonwebtoken"
 import Router from "express";
@@ -10,55 +10,87 @@ const router = Router()
 
 // REGISTRO DE USUÁRIO COM MÚLTIPLOS PERFIS
 router.post("/cadastro", async (req, res) => {
-  const { nome, email, senha, perfis, cpf, dataNascimento } = req.body;
+  const {
+    nome,
+    email,
+    senha,
+    perfis,
+    pessoaJuridica = false,
+    cpf,
+    dataNascimento,
+    cnpj,
+    razaoSocial
+  } = req.body
 
-  if (!nome || !email || !senha || !cpf || !dataNascimento) {
-    res.status(400).json({ erro: "Campos obrigatórios ausentes." });
+  // 🔒 Validação condicional
+  if (!nome || !email || !senha) {
+    res.status(400).json({ erro: "Campos obrigatórios ausentes." })
     return
   }
 
-  // Validar CPF (formato e regra)
-  if (!isValidCPF(cpf)) {
-    res.status(400).json({ erro: "CPF inválido." });
-    return
+  if (pessoaJuridica) {
+    if (!cnpj || !razaoSocial) {
+      res.status(400).json({ erro: "CNPJ e razão social são obrigatórios para pessoa jurídica." })
+      return
+    }
+    if (!isValidCNPJ(cnpj)) {
+      res.status(400).json({ erro: "CNPJ inválido." })
+      return
+    }
+  } else {
+    if (!cpf || !dataNascimento) {
+      res.status(400).json({ erro: "CPF e data de nascimento são obrigatórios para pessoa física." })
+      return
+    }
+
+    if (!isValidCPF(cpf)) {
+      res.status(400).json({ erro: "CPF inválido." })
+      return
+    }
+
+    const dataNasc = dayjs(dataNascimento)
+    if (!dataNasc.isValid() || dataNasc.isAfter(dayjs())) {
+      res.status(400).json({ erro: "Data de nascimento inválida." })
+      return
+    }
   }
 
-  // Validar data de nascimento (formato ISO e maior de idade, opcional)
-  const dataNasc = dayjs(dataNascimento);
-  if (!dataNasc.isValid() || dataNasc.isAfter(dayjs())) {
-    res.status(400).json({ erro: "Data de nascimento inválida." });
-    return
-  }
-
-  const [usuarioExistente, cpfExistente] = await Promise.all([
+  // 🔍 Checa duplicidade de email/cpf/cnpj
+  const [usuarioExistente, pessoaExistente] = await Promise.all([
     prisma.usuario.findUnique({ where: { email } }),
-    prisma.pessoa.findUnique({ where: { cpf } }),
-  ]);
+    prisma.pessoa.findFirst({
+      where: pessoaJuridica
+        ? { cnpj }
+        : { cpf },
+    }),
+  ])
 
   if (usuarioExistente) {
-    res.status(400).json({ erro: "E-mail já cadastrado." });
+    res.status(400).json({ erro: "E-mail já cadastrado." })
     return
   }
 
-  if (cpfExistente) {
-    res.status(400).json({ erro: "CPF já cadastrado." });
+  if (pessoaExistente) {
+    res.status(400).json({
+      erro: pessoaJuridica ? "CNPJ já cadastrado." : "CPF já cadastrado.",
+    })
     return
   }
 
   const perfisEncontrados = await prisma.perfil.findMany({
     where: {
-      nome: {
+      descricao: {
         in: perfis && perfis.length ? perfis : ["CLIENTE"],
       },
     },
-  });
+  })
 
   if (!perfisEncontrados.length) {
-    res.status(400).json({ erro: "Nenhum perfil válido foi informado." });
+    res.status(400).json({ erro: "Nenhum perfil válido foi informado." })
     return
   }
 
-  const senhaHash = await bcrypt.hash(senha, 10);
+  const senhaHash = await bcrypt.hash(senha, 10)
 
   const novoUsuario = await prisma.usuario.create({
     data: {
@@ -73,8 +105,11 @@ router.post("/cadastro", async (req, res) => {
       pessoa: {
         create: {
           nome,
-          cpf,
-          dataNascimento: new Date(dataNascimento),
+          pessoaJuridica,
+          cpf: !pessoaJuridica ? cpf : null,
+          dataNascimento: !pessoaJuridica ? new Date(dataNascimento) : null,
+          cnpj: pessoaJuridica ? cnpj : null,
+          razaoSocial: pessoaJuridica ? razaoSocial : null,
         },
       },
     },
@@ -82,26 +117,30 @@ router.post("/cadastro", async (req, res) => {
       perfis: {
         include: { perfil: true },
       },
-      pessoa: true
+      pessoa: true,
     },
-  });
+  })
 
-  res.status(201).json({
+  const response = {
     id: novoUsuario.id,
     nome: novoUsuario.nome,
     email: novoUsuario.email,
-    perfis: novoUsuario.perfis.map((p) => p.perfil.nome),
+    perfis: novoUsuario.perfis.map((p) => p.perfil.descricao),
     dataCriacao: novoUsuario.dataCriacao,
-    pessoaFisica: {
-      id: novoUsuario.pessoa.id,
-      nome: novoUsuario.pessoa.nome,
-      cpf: novoUsuario.pessoa.cpf,
-      dataNascimento: novoUsuario.pessoa.dataNascimento
-    }
-  });
+    pessoa: {
+      id: novoUsuario.pessoa?.id,
+      nome: novoUsuario.pessoa?.nome,
+      cpf: novoUsuario.pessoa?.cpf,
+      cnpj: novoUsuario.pessoa?.cnpj,
+      dataNascimento: novoUsuario.pessoa?.dataNascimento,
+      razaoSocial: novoUsuario.pessoa?.razaoSocial,
+      pessoaJuridica: novoUsuario.pessoa?.pessoaJuridica,
+    },
+  }
+
+  res.status(201).json(response)
   return
-});
-  
+})
 
 // Login
 router.post("/login", async (req, res) => {
@@ -129,7 +168,7 @@ router.post("/login", async (req, res) => {
     return
   }
 
-  const perfis = usuario.perfis.map((p) => p.perfil.nome)
+  const perfis = usuario.perfis.map((p) => p.perfil.descricao)
 
   const token = jwt.sign(
     {

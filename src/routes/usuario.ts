@@ -43,7 +43,7 @@ router.get("/", verifyToken, async (req, res) => {
         id: usuario.id,
         nome: usuario.nome,
         email: usuario.email,
-        perfis: usuario.perfis.map(p => p.perfil.nome),
+        perfis: usuario.perfis.map(p => p.perfil.descricao),
         pessoa: {
           id: usuario.pessoaId,
           nome: usuario.pessoa?.nome,
@@ -64,8 +64,8 @@ router.get("/", verifyToken, async (req, res) => {
             padrao: end.padrao
           })),
           contatos: usuario.pessoa.contatos.map(c => ({
-            tipo: c.tipoContato.nome,
-            valor: c.valor,
+            tipo: c.tipoContato.descricao,
+            id: c.id,
           })),
         },
         

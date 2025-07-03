@@ -4,8 +4,8 @@ import estados from './Estados.json';
 export async function seedEstados(prisma: PrismaClient) {
   const data = estados.map(estado => ({
     id: Number.parseInt(estado.ID),
-    nome: estado.Nome,
-    sigla: estado.Sigla
+    sigla: estado.Sigla,
+    descricao: estado.Nome
   }));
 
   await prisma.estado.createMany({
@@ -13,5 +13,5 @@ export async function seedEstados(prisma: PrismaClient) {
     skipDuplicates: true
   });
 
-  console.log('→ Unidades Federativas inseridas com sucesso');
+  console.log('→ Estados inseridas com sucesso');
 }

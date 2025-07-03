@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 
 const SCHEMA_NAME = "biribol_ecommerce";
-const SCHEMA_PATH = path.resolve(__dirname, "../prisma/schema.prisma");
+const SCHEMA_PATH = path.resolve(__dirname, "../../prisma/schema.prisma");
 const OUTPUT_PATH = path.resolve(__dirname, "./comentarios_schema.sql");
 
 type Model = {
@@ -43,7 +43,7 @@ function parsePrismaSchema(content: string): Model[] {
     }
 
     // Dentro de um model: capturar campos com buffer anterior
-    if (currentModel && line && !line.startsWith("@@") && !line.startsWith("//")) {
+    if (currentModel && line && !line.startsWith("@@") && !line.startsWith("///")) {
       const fieldName = line.split(/\s+/)[0];
       const fieldComment = buffer.join(" ");
       buffer = [];

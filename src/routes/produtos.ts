@@ -1,80 +1,93 @@
-import { Router } from "express"
-import { prisma } from "../lib/prisma"
-import { verifyToken } from "../middleware/verifyToken"
-import { requireRole } from "../middleware/requireRole"
+import { Router } from 'express'
+import { PrismaClient } from '@prisma/client'
+import { paginacao } from '../middleware/paginacao'
+import { z } from "zod"
+import { verifyToken } from '../middleware/verifyToken'
 
 const router = Router()
-
-// GET público
-router.get("/", async (_req, res) => {
-  const produtos = await prisma.produto.findMany({
-    orderBy: { dataCriacao: "desc" },
-  })
-  res.json(produtos)
+const prisma = new PrismaClient()
+const produtoSchema = z.object({
+  nome: z.string().min(2, "Nome inválido"),
+  descricao: z.string().min(5, "Descrição inválida"),
+  preco: z.number().nonnegative("Preço não pode ser negativo"),
+  marca: z.string().min(2, "Marca inválida"),
+  estoque: z.number().int().nonnegative("Estoque não pode ser negativo"),
+  modelo: z.string().optional(),
+  cor: z.string().optional(),
 })
 
-// POST (ADMIN ou DEV)
-router.post(
-  "/",
-  verifyToken,
-  requireRole(["ADMIN", "DEV"]),
-  async (req, res) => {
-    const { nome, descricao, preco, imagemUrl, estoque } = req.body
+router.post("/", verifyToken, async (req, res) => {
+  const usuarioId = req.user?.id
 
-    if (!nome || !descricao || !preco || !imagemUrl || estoque == null) {
-      res.status(400).json({ erro: "Todos os campos são obrigatórios." })
-      return
-    }
+  const bodyValidation = produtoSchema.safeParse(req.body)
 
-    const novoProduto = await prisma.produto.create({
-      data: { nome, descricao, preco, imagemUrl, estoque },
+  if (!bodyValidation.success) {
+    res.status(400).json({ erro: "Dados inválidos", detalhes: bodyValidation.error.errors })
+    return
+  }
+
+  const { nome, descricao, preco, marca, estoque, modelo, cor } = bodyValidation.data
+
+  try {
+    const produto = await prisma.produto.create({
+      data: {
+        nome,
+        descricao,
+        preco,
+        marca,
+        estoque,
+        modelo,
+        cor,
+        criacaoUsuarioId: usuarioId,
+      },
     })
 
-    res.status(201).json(novoProduto)
+    res.status(201).json(produto)
+    return
+  } catch {
+    res.status(500).json({ erro: "Erro ao cadastrar produto." })
+    return
   }
-)
+})
 
-// PUT (ADMIN ou DEV)
-router.put(
-  "/:id",
-  verifyToken,
-  requireRole(["ADMIN", "DEV"]),
-  async (req, res) => {
-    const { id } = req.params
-    const { nome, descricao, preco, imagemUrl, estoque } = req.body
+router.get('/', paginacao, async (req, res) => {
+  const { nome, marca, semEstoque, incluirExcluidos } = req.query
+  const { skip, take } = res.locals.paginacao
 
-    const produtoExistente = await prisma.produto.findUnique({ where: { id } })
-    if (!produtoExistente) {
-      res.status(404).json({ erro: "Produto não encontrado." })
-      return
-    }
+  const filtros: any = {}
 
-    const atualizado = await prisma.produto.update({
-      where: { id },
-      data: { nome, descricao, preco, imagemUrl, estoque },
-    })
-
-    res.json(atualizado)
+  if (nome) {
+    filtros.nome = { contains: nome, mode: 'insensitive' }
   }
-)
 
-// DELETE (ADMIN ou DEV)
-router.delete(
-  "/:id",
-  verifyToken,
-  requireRole(["ADMIN", "DEV"]),
-  async (req, res) => {
-    const { id } = req.params
-
-    const produto = await prisma.produto.findUnique({ where: { id } })
-    if (!produto){
-      res.status(404).json({ erro: "Produto não encontrado." })
-      return
-    }
-
-    await prisma.produto.delete({ where: { id } })
-    res.status(204).send()
+  if (marca) {
+    filtros.marca = { contains: marca, mode: 'insensitive' }
   }
-)
+
+  if (semEstoque === 'true') {
+    filtros.estoque = 0
+  }
+
+  if (incluirExcluidos !== 'true') {
+    filtros.excluido = false
+  }
+
+  const [produtos, total] = await Promise.all([
+    prisma.produto.findMany({
+      where: filtros,
+      skip,
+      take,
+      orderBy: { dataCriacao: 'desc' },
+    }),
+    prisma.produto.count({ where: filtros })
+  ])
+
+  res.json({
+    dados: produtos,
+    total,
+    paginaAtual: Math.floor(skip / take) + 1,
+    totalPaginas: Math.ceil(total / take)
+  })
+})
 
 export default router
